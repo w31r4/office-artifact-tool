@@ -4,6 +4,14 @@
   "description": "Standalone Office artifact toolkit package.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w31r4/office-artifact-tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/w31r4/office-artifact-tool/issues"
+  },
+  "homepage": "https://github.com/w31r4/office-artifact-tool#readme",
   "dependencies": {
     "skia-canvas": "^3.0.6",
     "@officer/walnut": "0.1.210"
