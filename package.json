@@ -1,0 +1,41 @@
+{
+  "name": "office-artifact-tool",
+  "version": "2.8.22",
+  "description": "Standalone Office artifact toolkit package.",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {
+    "skia-canvas": "^3.0.6",
+    "@officer/walnut": "0.1.210"
+  },
+  "exports": {
+    ".": "./dist/artifact_tool.mjs",
+    "./presentation-jsx": "./dist/presentation-jsx/index.mjs",
+    "./presentation-jsx/jsx-runtime": "./dist/presentation-jsx/jsx-runtime.mjs",
+    "./presentation-jsx/jsx-dev-runtime": "./dist/presentation-jsx/jsx-dev-runtime.mjs"
+  },
+  "files": [
+    "dist/**",
+    "node_modules/**",
+    "LICENSE.md",
+    "NOTICE.md",
+    "README.md",
+    "test/**"
+  ],
+  "scripts": {
+    "test": "node test/import-smoke.mjs && node test/package-contents-smoke.mjs && node test/presentation-export-smoke.mjs",
+    "test:import": "node test/import-smoke.mjs",
+    "test:contents": "node test/package-contents-smoke.mjs",
+    "test:presentation": "node test/presentation-export-smoke.mjs",
+    "test:pack": "npm pack --dry-run"
+  },
+  "bundledDependencies": [
+    "@officer/walnut",
+    "skia-canvas"
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "skia-canvas"
+    ]
+  }
+}
