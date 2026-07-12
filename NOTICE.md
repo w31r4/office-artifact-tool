@@ -1,9 +1,8 @@
 # Notice
 
-This package is a standalone Office artifact toolkit package.
+This package is a standalone Office artifact toolkit.
 
-- Upstream package: `office-artifact-tool@2.8.22`
-- New package name: `office-artifact-tool@2.8.22`
+Package: `office-artifact-tool@2.8.22`
 
 Vendored runtime dependencies included for standalone operation:
 

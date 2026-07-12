@@ -2,7 +2,7 @@
 
 Standalone ESM package for Office-style artifact generation and manipulation.
 
-This package provides standalone Office artifact toolkit runtime assets for package use.
+This package is a standalone Office artifact toolkit, distributed under the MIT license.
 
 ## Usage
 

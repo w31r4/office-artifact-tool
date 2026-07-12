@@ -3,7 +3,7 @@
   "version": "2.8.22",
   "description": "Standalone Office artifact toolkit package.",
   "type": "module",
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/w31r4/office-artifact-tool.git"
