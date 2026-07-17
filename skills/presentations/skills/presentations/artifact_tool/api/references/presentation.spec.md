@@ -85,6 +85,31 @@ type PresentationHelpOptions = {
 };
 ```
 
+## Presentation View
+
+Use `presentation.view` to control gridlines and imported PowerPoint guides in
+an editor preview.
+
+```ts
+presentation.view.showGridlines();
+presentation.view.showGuides();
+
+const gridlinesVisible = presentation.view.gridlinesVisible;
+const guidesVisible = presentation.view.guidesVisible;
+const horizontalGridSpacingEmu = presentation.view.gridSpacingCxEmu;
+const verticalGridSpacingEmu = presentation.view.gridSpacingCyEmu;
+
+presentation.view.hideGridlines();
+presentation.view.hideGuides();
+
+const nextGridlineState = presentation.view.toggleGridlines();
+const nextGuideState = presentation.view.toggleGuides();
+```
+
+Gridline visibility is local editor state. Guide visibility is also intended
+for the editor view; serialized presentation data keeps imported guide
+definitions while exporting their visibility as hidden.
+
 ## Export And Serialized Data
 
 ```ts

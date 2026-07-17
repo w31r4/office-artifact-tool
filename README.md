@@ -33,12 +33,12 @@ import { jsx, jsxs } from "office-artifact-tool/presentation-jsx/jsx-runtime";
 
 ## Runtime contents
 
-The package intentionally vendors the runtime assets required by the compiled bundle:
+The package intentionally vendors the runtime assets required by its ESM runtime:
 
-- `@officer/walnut@0.1.210`, including the OpenXML/.NET WASM assets under `node_modules/@officer/walnut/wasm/`
+- `@officer/walnut@0.1.225`, including the OpenXML/.NET WASM assets under `node_modules/@officer/walnut/wasm/`
 - `skia-canvas`, including the native `lib/skia.node` binding
 
-Do not remove those files from the published tarball unless the compiled bundle is updated to resolve them from another location.
+Do not remove those files from the published tarball unless the package runtime is updated to resolve them from another location.
 
 ## Verification
 

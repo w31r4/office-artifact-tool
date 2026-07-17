@@ -32,8 +32,8 @@ Do not follow those routing instructions if irrelevant to the task. Default is t
 
 Other documents:
 - `style_guidelines.md`: REQUIRED for formatting requirements
-- `API_QUICK_START.md`: REQUIRED API documentation for `artifact_tool` JS library, which exposes methods to read, manipulate, edit, recalculate, render, import and save spreadsheets. You must read it entirely to get started.
-- `charts.md`: Read when creating or editing charts.
+- `artifact_tool_docs/API_QUICK_START.md`: REQUIRED API documentation for `artifact_tool` JS library, which exposes methods to read, manipulate, edit, recalculate, render, import and save spreadsheets. You must read it entirely to get started.
+- `features/charts.md`: Read when creating or editing charts.
 
 ## Domain Requirements
 You must read these domain rules when the request clearly relates to the domain, but do not load domain guidance for unrelated tasks unless asked:

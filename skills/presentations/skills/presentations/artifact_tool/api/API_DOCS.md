@@ -50,7 +50,11 @@ const shape = slide.shapes.add({
   borderRadius: "rounded-2xl",
 });
 
-const previewBlob = await presentation.export({ slide, format: "png", scale: 2 });
+const previewBlob = await presentation.export({
+  slide,
+  format: "png",
+  scale: 2,
+});
 const layoutBlob = await slide.export({ format: "layout" });
 const montageBlob = await presentation.export({
   format: "webp",
@@ -85,14 +89,22 @@ const before = await presentation.inspect({
 });
 
 const slide = presentation.resolve(slideAnchorIdFromInspect);
-const previewBefore = await presentation.export({ slide, format: "png", scale: 1 });
+const previewBefore = await presentation.export({
+  slide,
+  format: "png",
+  scale: 1,
+});
 const layoutBefore = await slide.export({ format: "layout" });
 
 const target = presentation.resolve(anchorIdFromInspect);
 target.text.replace("Revenue", "Revenue outlook");
 target.text.style = { fontSize: 24, color: "slate-950", bold: true };
 
-const previewAfter = await presentation.export({ slide, format: "png", scale: 1 });
+const previewAfter = await presentation.export({
+  slide,
+  format: "png",
+  scale: 1,
+});
 const layoutAfter = await slide.export({ format: "layout" });
 const after = await presentation.inspect({
   target: { id: anchorIdFromInspect, beforeLines: 2, afterLines: 2 },
@@ -112,7 +124,10 @@ const slide = presentation.slides.add();
 
 slide.compose(
   <column width="fill" height="fill" gap={16}>
-    <paragraph name="headline" className="text-slate-950 text-3xl leading-tight">
+    <paragraph
+      name="headline"
+      className="text-slate-950 text-3xl leading-tight"
+    >
       <run textStyle={{ bold: true }}>Quarterly</run>
       <run> readiness</run>
     </paragraph>
@@ -139,18 +154,19 @@ tags default `width` to `"fill"` when you omit it.
 - Export previews with `presentation.export({ slide, format, scale })`.
 - Export deck montages with `presentation.export({ format: "webp", montage: true, scale: 1 })`.
 - Export layout JSON with `slide.export({ format: "layout" })`.
+- Control editor gridlines and imported guides with `presentation.view`.
 - Search API help with `presentation.help(query, { search, include, maxChars })`.
 - Run high-level edits with `presentation.scripts.run(kind, options)`; see [`references/presentation.spec.md`](./references/presentation.spec.md) for the script surface.
 
 ## Output Map
 
-| Output | API | Result |
-| --- | --- | --- |
-| Slide PNG | `presentation.export({ slide, format: "png", scale })` | One preview image for one slide |
-| Deck montage | `presentation.export({ format: "webp", montage: true, scale })` | One overview image containing the deck slides |
-| Layout JSON | `slide.export({ format: "layout" })` | Structural JSON with bounds, ids, text, names, and object metadata |
-| Searchable snapshot | `presentation.inspect({ kind, search, maxChars })` | NDJSON records for locating and resolving objects |
-| Runtime handoff | `presentation.toProto()` | Serializable presentation data for host adapters |
+| Output              | API                                                             | Result                                                             |
+| ------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Slide PNG           | `presentation.export({ slide, format: "png", scale })`          | One preview image for one slide                                    |
+| Deck montage        | `presentation.export({ format: "webp", montage: true, scale })` | One overview image containing the deck slides                      |
+| Layout JSON         | `slide.export({ format: "layout" })`                            | Structural JSON with bounds, ids, text, names, and object metadata |
+| Searchable snapshot | `presentation.inspect({ kind, search, maxChars })`              | NDJSON records for locating and resolving objects                  |
+| Runtime handoff     | `presentation.toProto()`                                        | Serializable presentation data for host adapters                   |
 
 ## Minimal Patterns
 
@@ -211,7 +227,7 @@ Open these references as needed:
 - [`references/tokens.md`](./references/tokens.md) — Tailwind-like token reference for colors, text, radius, shadows, and `className`.
 - [`references/cookbook/layout.md`](./references/cookbook/layout.md) — first-principles layout recipes for rows, columns, 12-column grids, alignment, masks, and overlays.
 - [`references/cookbook/imported-deck.md`](./references/cookbook/imported-deck.md) — safe inspect, resolve, edit, preview, and re-inspect loops for existing decks.
-- [`references/presentation.spec.md`](./references/presentation.spec.md) — `Presentation` facade, slide collection, export/toProto, scripts.
+- [`references/presentation.spec.md`](./references/presentation.spec.md) — `Presentation` facade, slide collection, view controls, export/toProto, scripts.
 - [`references/slide.spec.md`](./references/slide.spec.md) — `Slide` API, backgrounds, placeholders, notes, export, auto-layout.
 - [`references/inspect.md`](./references/inspect.md) — grep-first snapshot (`inspect → rg → resolve/edit → re-inspect`) for loaded presentation data and templates.
 - [`references/help.md`](./references/help.md) — grep-first API and template lookup (`help → build/edit → inspect`) for presentation JS workflows.

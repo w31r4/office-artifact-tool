@@ -18,7 +18,14 @@ layout.placeholders.add({
 
 ```ts
 type PlaceholderConfig = {
-  type?: "title" | "subtitle" | "body" | "picture" | "chart" | "table" | "content";
+  type?:
+    | "title"
+    | "subtitle"
+    | "body"
+    | "picture"
+    | "chart"
+    | "table"
+    | "content";
   index?: number;
   text?: TextValue;
   geometry?: "textbox" | "rect" | "roundRect" | string;
@@ -51,6 +58,14 @@ target.text = textValue;
 ```ts
 const layoutSummary = layout.placeholders.summary();
 const resolved = presentation.layouts.getById(layout.id);
+```
+
+Imported layouts and masters expose their preserved PowerPoint guide metadata
+through the read-only `slideGuides` collection. Use `presentation.view` to
+control whether imported guides are visible.
+
+```ts
+const importedGuides = presentation.layouts.items[0].slideGuides;
 ```
 
 ## Cookbook
