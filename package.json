@@ -31,11 +31,13 @@
     "test/**"
   ],
   "scripts": {
-    "test": "node test/import-smoke.mjs && node test/package-contents-smoke.mjs && node test/presentation-export-smoke.mjs",
+    "test": "node test/import-smoke.mjs && node test/package-contents-smoke.mjs && node test/presentation-export-smoke.mjs && node test/template-library-smoke.mjs && node test/template-creator-smoke.mjs",
     "test:import": "node test/import-smoke.mjs",
     "test:contents": "node test/package-contents-smoke.mjs",
     "test:presentation": "node test/presentation-export-smoke.mjs",
-    "test:pack": "npm pack --dry-run"
+    "test:template-library": "node test/template-library-smoke.mjs",
+    "test:template-creator": "node test/template-creator-smoke.mjs",
+    "test:pack": "node test/package-skill-exclusion-smoke.mjs"
   },
   "bundledDependencies": [
     "@officer/walnut",
