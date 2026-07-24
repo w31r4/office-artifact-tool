@@ -32,4 +32,16 @@ for (const name of ["jsxDEV", "Fragment"]) {
   }
 }
 
+const officerElementSymbol = Symbol.for("@officer/granola/presentation-jsx.element");
+const officerFragmentSymbol = Symbol.for("@officer/granola/presentation-jsx.fragment");
+if (jsxRuntime.jsx("fixture", {}).$$type !== officerElementSymbol) {
+  throw new Error("jsx-runtime did not emit the Officer element symbol");
+}
+if (jsxDevRuntime.jsxDEV("fixture", {}).$$type !== officerElementSymbol) {
+  throw new Error("jsx-dev-runtime did not emit the Officer element symbol");
+}
+if (jsxRuntime.Fragment !== officerFragmentSymbol || jsxDevRuntime.Fragment !== officerFragmentSymbol) {
+  throw new Error("JSX runtimes did not emit the Officer fragment symbol");
+}
+
 console.log("import smoke ok");
