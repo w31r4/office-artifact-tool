@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { crc32 } from "node:zlib";
+import { crc32, inflateRawSync } from "node:zlib";
 
 const TEMPLATE_PREFIX = "artifact-template-";
 const WRITE_LOCK_NAME = ".artifact-template-write-lock";
@@ -14,6 +14,36 @@ const LOCK_OWNER_FILENAME = "owner-pid";
 const BACKUP_NAME_PATTERN = /^(artifact-template-[a-z0-9]+(?:-[a-z0-9]+)*)\.backup-[0-9a-f-]+$/u;
 const MAX_SKILL_NAME_LENGTH = 64;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
+const ZIP_CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
+const ZIP_LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50;
+const MAX_OOXML_CONTENT_TYPES_BYTES = 1024 * 1024;
+const OOXML_PACKAGE_LAYOUTS = new Map([
+  [
+    ".docx",
+    {
+      mainContentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+      mainPart: "word/document.xml",
+    },
+  ],
+  [
+    ".pptx",
+    {
+      mainContentType:
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+      mainPart: "ppt/presentation.xml",
+    },
+  ],
+  [
+    ".xlsx",
+    {
+      mainContentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+      mainPart: "xl/workbook.xml",
+    },
+  ],
+]);
 const USAGE =
   "Usage: create-template-skill.mjs --reference-path <path> --preview-path <path> --display-name <name> --description <description> [--mode update --skill-name <name>]";
 const artifactKinds = new Map([
@@ -127,6 +157,11 @@ async function validateRequest(rawRequest) {
     assertRegularFile(referencePath, "--reference-path"),
     assertRegularFile(previewPath, "--preview-path"),
   ]);
+  if (!hasValidOoxmlPackage(await fs.readFile(referencePath), extension)) {
+    throw new Error(
+      "--reference-path must contain a structurally valid Office Open XML package.",
+    );
+  }
   if (path.extname(previewPath).toLowerCase() !== ".png") {
     throw new Error("--preview-path must end in .png.");
   }
@@ -521,7 +556,7 @@ function hasValidPngStructure(bytes) {
       return false;
     }
     if (
-      crc32(bytes.subarray(offset + 4, crcOffset)) !==
+      (crc32(bytes.subarray(offset + 4, crcOffset)) >>> 0) !==
       bytes.readUInt32BE(crcOffset)
     ) {
       return false;
@@ -533,6 +568,199 @@ function hasValidPngStructure(bytes) {
     offset = nextOffset;
   }
   return false;
+}
+
+function hasValidOoxmlPackage(bytes, extension) {
+  const layout = OOXML_PACKAGE_LAYOUTS.get(extension);
+  if (layout == null) return false;
+
+  const entries = readZipCentralDirectory(bytes);
+  if (entries == null) return false;
+  const contentTypes = entries.get("[Content_Types].xml");
+  const mainPart = entries.get(layout.mainPart);
+  if (
+    contentTypes == null ||
+    mainPart == null ||
+    !hasValidZipEntry(bytes, mainPart)
+  ) {
+    return false;
+  }
+
+  const contentTypesBytes = readZipEntry(bytes, contentTypes);
+  return (
+    contentTypesBytes != null &&
+    hasRequiredOoxmlContentType(contentTypesBytes.toString("utf8"), layout)
+  );
+}
+
+function readZipCentralDirectory(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 22) return null;
+  const endOffset = findZipEndOfCentralDirectory(bytes);
+  if (endOffset < 0) return null;
+
+  const diskNumber = bytes.readUInt16LE(endOffset + 4);
+  const centralDirectoryDisk = bytes.readUInt16LE(endOffset + 6);
+  const entriesOnDisk = bytes.readUInt16LE(endOffset + 8);
+  const entryCount = bytes.readUInt16LE(endOffset + 10);
+  const centralDirectorySize = bytes.readUInt32LE(endOffset + 12);
+  const centralDirectoryOffset = bytes.readUInt32LE(endOffset + 16);
+  if (
+    diskNumber !== 0 ||
+    centralDirectoryDisk !== 0 ||
+    entriesOnDisk !== entryCount ||
+    entryCount === 0 ||
+    entriesOnDisk === 0xffff ||
+    entryCount === 0xffff ||
+    centralDirectorySize === 0xffffffff ||
+    centralDirectoryOffset === 0xffffffff
+  ) {
+    return null;
+  }
+
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  if (
+    !Number.isSafeInteger(centralDirectoryEnd) ||
+    centralDirectoryOffset > endOffset ||
+    centralDirectoryEnd > endOffset
+  ) {
+    return null;
+  }
+
+  const entries = new Map();
+  let offset = centralDirectoryOffset;
+  for (let index = 0; index < entryCount; index += 1) {
+    if (
+      offset + 46 > centralDirectoryEnd ||
+      bytes.readUInt32LE(offset) !== ZIP_CENTRAL_DIRECTORY_SIGNATURE
+    ) {
+      return null;
+    }
+    const flags = bytes.readUInt16LE(offset + 8);
+    const compressionMethod = bytes.readUInt16LE(offset + 10);
+    const checksum = bytes.readUInt32LE(offset + 16);
+    const compressedSize = bytes.readUInt32LE(offset + 20);
+    const uncompressedSize = bytes.readUInt32LE(offset + 24);
+    const filenameLength = bytes.readUInt16LE(offset + 28);
+    const extraLength = bytes.readUInt16LE(offset + 30);
+    const commentLength = bytes.readUInt16LE(offset + 32);
+    const localHeaderOffset = bytes.readUInt32LE(offset + 42);
+    const filenameStart = offset + 46;
+    const recordEnd = filenameStart + filenameLength + extraLength + commentLength;
+    if (!Number.isSafeInteger(recordEnd) || recordEnd > centralDirectoryEnd) {
+      return null;
+    }
+    const name = bytes.toString("utf8", filenameStart, filenameStart + filenameLength);
+    if (name.length === 0 || entries.has(name)) return null;
+    entries.set(name, {
+      checksum,
+      compressedSize,
+      compressionMethod,
+      flags,
+      localHeaderOffset,
+      name,
+      uncompressedSize,
+    });
+    offset = recordEnd;
+  }
+  return entries;
+}
+
+function findZipEndOfCentralDirectory(bytes) {
+  const minOffset = Math.max(0, bytes.length - 0xffff - 22);
+  for (let offset = bytes.length - 22; offset >= minOffset; offset -= 1) {
+    if (bytes.readUInt32LE(offset) !== ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE) {
+      continue;
+    }
+    const commentLength = bytes.readUInt16LE(offset + 20);
+    if (offset + 22 + commentLength === bytes.length) return offset;
+  }
+  return -1;
+}
+
+function hasValidZipEntry(bytes, entry) {
+  if (
+    entry == null ||
+    (entry.flags & 0x0001) !== 0 ||
+    ![0, 8].includes(entry.compressionMethod)
+  ) {
+    return false;
+  }
+  const localHeaderOffset = entry.localHeaderOffset;
+  if (
+    localHeaderOffset + 30 > bytes.length ||
+    bytes.readUInt32LE(localHeaderOffset) !== ZIP_LOCAL_FILE_HEADER_SIGNATURE ||
+    bytes.readUInt16LE(localHeaderOffset + 8) !== entry.compressionMethod
+  ) {
+    return false;
+  }
+  const localFilenameLength = bytes.readUInt16LE(localHeaderOffset + 26);
+  const localExtraLength = bytes.readUInt16LE(localHeaderOffset + 28);
+  const localFilenameStart = localHeaderOffset + 30;
+  const dataStart = localFilenameStart + localFilenameLength + localExtraLength;
+  const dataEnd = dataStart + entry.compressedSize;
+  if (!Number.isSafeInteger(dataEnd) || dataEnd > bytes.length) return false;
+  return (
+    bytes.toString(
+      "utf8",
+      localFilenameStart,
+      localFilenameStart + localFilenameLength,
+    ) === entry.name
+  );
+}
+
+function readZipEntry(bytes, entry) {
+  if (
+    !hasValidZipEntry(bytes, entry) ||
+    entry.compressedSize > MAX_OOXML_CONTENT_TYPES_BYTES ||
+    entry.uncompressedSize > MAX_OOXML_CONTENT_TYPES_BYTES
+  ) {
+    return null;
+  }
+  const localFilenameLength = bytes.readUInt16LE(entry.localHeaderOffset + 26);
+  const localExtraLength = bytes.readUInt16LE(entry.localHeaderOffset + 28);
+  const dataStart = entry.localHeaderOffset + 30 + localFilenameLength + localExtraLength;
+  const compressed = bytes.subarray(dataStart, dataStart + entry.compressedSize);
+  let uncompressed;
+  try {
+    uncompressed =
+      entry.compressionMethod === 0
+        ? compressed
+        : inflateRawSync(compressed, {
+            maxOutputLength: MAX_OOXML_CONTENT_TYPES_BYTES,
+          });
+  } catch {
+    return null;
+  }
+  if (
+    uncompressed.length !== entry.uncompressedSize ||
+    (crc32(uncompressed) >>> 0) !== entry.checksum
+  ) {
+    return null;
+  }
+  return uncompressed;
+}
+
+function hasRequiredOoxmlContentType(contentTypesXml, layout) {
+  if (!/<Types\b/iu.test(contentTypesXml)) return false;
+  const hasMainOverride = (contentTypesXml.match(/<Override\b[^>]*>/giu) ?? []).some(
+    (tag) =>
+      hasXmlAttribute(tag, "PartName", `/${layout.mainPart}`) &&
+      hasXmlAttribute(tag, "ContentType", layout.mainContentType),
+  );
+  if (hasMainOverride) return true;
+  return (contentTypesXml.match(/<Default\b[^>]*>/giu) ?? []).some(
+    (tag) =>
+      hasXmlAttribute(tag, "Extension", "xml") &&
+      hasXmlAttribute(tag, "ContentType", layout.mainContentType),
+  );
+}
+
+function hasXmlAttribute(tag, name, expectedValue) {
+  const escapedValue = expectedValue.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  return new RegExp(
+    `\\b${name}\\s*=\\s*(["'])${escapedValue}\\1`,
+    "iu",
+  ).test(tag);
 }
 
 async function assertRegularFile(filePath, label) {

@@ -16,7 +16,7 @@ Create or update a reference-backed local template. The source Office file stays
 
 ## Create workflow
 
-1. Require exactly one `.docx`, `.pptx`, or `.xlsx` reference unless the user explicitly requests a batch. For a batch, complete this workflow separately for every file.
+1. Require exactly one structurally valid `.docx`, `.pptx`, or `.xlsx` reference unless the user explicitly requests a batch. For a batch, complete this workflow separately for every file.
 2. Infer a concise display name, intended-use description, and artifact kind from the reference and request.
 3. Create `preview.png` before packaging:
    - DOCX: render the reference and use a representative page PNG.

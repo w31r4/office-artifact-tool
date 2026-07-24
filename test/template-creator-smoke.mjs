@@ -190,6 +190,10 @@ try {
   const updatedPptxPath = path.join(fixturesDirectory, "updated-reference.pptx");
   const docxPath = path.join(fixturesDirectory, "reference.docx");
   const xlsxPath = path.join(fixturesDirectory, "reference.xlsx");
+  const renamedDocxPath = path.join(fixturesDirectory, "renamed-not-office.docx");
+  const renamedPptxPath = path.join(fixturesDirectory, "renamed-not-office.pptx");
+  const renamedXlsxPath = path.join(fixturesDirectory, "renamed-not-office.xlsx");
+  const textPath = path.join(fixturesDirectory, "reference.txt");
   const previewPath = path.join(fixturesDirectory, "preview.png");
 
   await Promise.all([
@@ -197,6 +201,10 @@ try {
     writePresentationFixture(updatedPptxPath, 2),
     writeSpreadsheetFixture(xlsxPath),
     writeDocumentFixture(docxPath),
+    fs.writeFile(renamedDocxPath, "not an Office package\n", "utf8"),
+    fs.writeFile(renamedPptxPath, "not an Office package\n", "utf8"),
+    fs.writeFile(renamedXlsxPath, "not an Office package\n", "utf8"),
+    fs.writeFile(textPath, "unsupported template kind\n", "utf8"),
     writePngFixture(previewPath),
     fs.mkdir(home, { recursive: true }),
   ]);
@@ -228,6 +236,46 @@ try {
     "--description", "Create spreadsheets from the fixture layout.",
   ]);
   await assertGeneratedTemplate(xlsxTemplate, { kind: "spreadsheet", referencePath: xlsxPath });
+
+  const imageReference = await runCreator([
+    "--reference-path", previewPath,
+    "--preview-path", previewPath,
+    "--display-name", "Image fixture",
+    "--description", "Attempt to create an unsupported image template.",
+  ]);
+  if (imageReference.code === 0) {
+    throw new Error("Template creator accepted an unsupported image reference.");
+  }
+  const textReference = await runCreator([
+    "--reference-path", textPath,
+    "--preview-path", previewPath,
+    "--display-name", "Text fixture",
+    "--description", "Attempt to create an unsupported text template.",
+  ]);
+  if (textReference.code === 0) {
+    throw new Error("Template creator accepted an unsupported text reference.");
+  }
+  for (const renamedReferencePath of [renamedDocxPath, renamedPptxPath, renamedXlsxPath]) {
+    const renamedOfficeReference = await runCreator([
+      "--reference-path", renamedReferencePath,
+      "--preview-path", previewPath,
+      "--display-name", `Renamed ${path.extname(renamedReferencePath)} fixture`,
+      "--description", "Attempt to create a template from renamed non-Office bytes.",
+    ]);
+    if (renamedOfficeReference.code === 0) {
+      throw new Error(`Template creator accepted renamed non-Office bytes: ${renamedReferencePath}`);
+    }
+  }
+  const explicitKind = await runCreator([
+    "--reference-path", pptxPath,
+    "--preview-path", previewPath,
+    "--display-name", "Explicit kind fixture",
+    "--description", "Attempt to expose an unsupported kind flag.",
+    "--kind", "image",
+  ]);
+  if (explicitKind.code === 0) {
+    throw new Error("Template creator accepted the unsupported --kind flag.");
+  }
 
   const kindChange = await runCreator([
     "--mode", "update",

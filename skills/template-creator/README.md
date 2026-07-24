@@ -54,4 +54,4 @@ $OFFICE_ARTIFACT_HOME/skills/artifact-template-<slug>/
     └── preview.png
 ```
 
-`artifact-template.json` records the supported kind and paths to the retained reference and preview. The creator validates PNG chunk structure and CRCs before copying the preview.
+`artifact-template.json` records the supported kind and paths to the retained reference and preview. The creator validates that the reference is a structurally valid Office Open XML package for its extension, then validates PNG chunk structure and CRCs before copying the preview.
